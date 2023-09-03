@@ -1,11 +1,11 @@
 #define	BLANK		' '
 #define	DFL_SYMBOL	'o'
-#define	TOP_ROW		5
-#define	BOT_ROW 	20
-#define	LEFT_EDGE	10
-#define	RIGHT_EDGE	70
-#define	X_INIT		10		/* starting col		*/
-#define	Y_INIT		10		/* starting row		*/
+#define	TOP_ROW		1
+#define	BOT_ROW 	30
+#define	LEFT_EDGE	1
+#define	RIGHT_EDGE	119
+#define	X_INIT		60		/* starting col		*/
+#define	Y_INIT		15		/* starting row		*/
 #define	TICKS_PER_SEC	50		/* affects speed	*/
 
 #define	X_TTM		5

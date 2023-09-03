@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <curses.h>
+#include <ncurses.h>
 #include <signal.h>
 #include <termios.h>
 #include <fcntl.h>
@@ -14,6 +14,7 @@ void wrapUp();
 int setTicker(int);
 int bounceOrLose(struct ppball *);
 void ballMove(int);
+void drawCourt();
 
 int main() {
     int c;
@@ -41,8 +42,9 @@ void setUp() {
     the_Ball.x_dir = 1;
     the_Ball.symbol = DFL_SYMBOL;
 
-    initscr(); //-----------------
-    noecho(); //----------------
+    initscr();
+    drawCourt();
+    noecho();
     crmode();
 
     signal(SIGINT, SIG_IGN);
@@ -56,7 +58,7 @@ void setUp() {
 
 void wrapUp() {
     setTicker(0);
-    endwin(); //----------------
+    endwin();
 }
 
 void ballMove(int signum) {
@@ -125,4 +127,19 @@ int setTicker( int nMsecs )
     newTimeset.it_value.tv_usec = nUsecs;
 
 	return setitimer(ITIMER_REAL, &newTimeset, NULL);
+}
+
+// draws the borders for the court
+void drawCourt() {
+
+    for (int ii = 1; ii < 31; ii++) {
+        move(ii, 0);
+        addstr("*");
+    }
+    for (int ii = 1; ii < 121; ii++) {
+        move(0, ii);
+        addstr("*");
+        move(31, ii);
+        addstr("*");
+    }
 }
