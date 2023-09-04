@@ -65,25 +65,14 @@ int main() {
     while (!done) {
         // Title screen
         if (gameState == 0) {
-            signal(SIGIO, mmInput);
-            drawCourt();
-            drawPong();
-            move(21,52);
-            addstr("Press Enter to play");
-            showControls(1);
-            
+            menuScreen();
             pause();
 
         }
 
         // Difficulty screen
         else if (gameState == 1) {
-            signal(SIGIO, difficultyInput);
-            drawCourt();
-            difficultyMenu();
-            move(difRow,difCol);
-            addch('>');
-            refresh();
+            difficultyScreen();
 
             while (gameState == 1)
                 pause();
@@ -100,12 +89,6 @@ int main() {
         else if (gameState == 3) {
             lossScreen();
             pause();
-            // pause();
-        }
-
-        // Pause screen
-        else if (gameState == 4) {
-
         }
     }
 
@@ -140,6 +123,25 @@ void mmInput(int signum) {
 			gameState = 1;
 			break;
 	}
+}
+
+void difficultyScreen() {
+    signal(SIGIO, difficultyInput);
+    drawCourt();
+    difficultyMenu();
+    // move(difRow,difCol);
+    mvaddch(difRow,difCol,'>');
+    move(LINES-1,COLS-1);
+    refresh();
+}
+
+void menuScreen() {
+    signal(SIGIO, mmInput);
+    drawCourt();
+    drawPong();
+    move(21,52);
+    addstr("Press Enter to play");
+    showControls(1);
 }
 
 void difficultyInput(int signum) {
@@ -211,7 +213,6 @@ void lossInput(int signum) {
 void pauseInput(int signum) {
     int c = getch();
 
-    
     if (c == 27) {
         switch (selectedDif)
         {
@@ -324,7 +325,11 @@ void startGame() {
     refresh();
 
     signal(SIGALRM, ballMove);
-    switch (selectedDif)
+    setDifficulty(selectedDif);
+}
+
+void setDifficulty(int dif) {
+    switch (dif)
     {
         case 0:
             setTicker(1000/10);
@@ -341,7 +346,6 @@ void startGame() {
         case 4:
             setTicker(1000/250);
             break;
-
     }
 }
 
