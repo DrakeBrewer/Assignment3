@@ -23,15 +23,21 @@ void wrapUp();
 
 int setTicker(int);
 
-void mmInput(int);
-
 void startGame();
 int bounceOrLose(struct ppball *);
 void ballMove(int);
 
-void difficultyInput(int);
+void menuScreen();
+void difficultyScreen();
+void lossScreen();
 
+void mmInput(int);
+void difficultyInput(int);
 void paddleInput(int);
+void lossInput(int);
+void pauseInput(int);
+
+void showControls(int);
 
 void enable_kbd_signals();
 void drawCourt();
@@ -60,27 +66,12 @@ int main() {
         // Title screen
         if (gameState == 0) {
             signal(SIGIO, mmInput);
-            // enable_kbd_signals();
             drawCourt();
             drawPong();
             move(21,52);
             addstr("Press Enter to play");
-            move(23,55);
-            addstr("Controls:");
-            move(25,45);
-            addstr("Up: j");
-            move(27,45);
-            addstr("Down: k");
-            move(25,55);
-            addstr("Restart: r");
-            move(27,55);
-            addstr("Pause: p");
-            move(25,69);
-            addstr("Main Menu: M");
-            move(27,69);
-            addstr("Quit: Q");
-            move(LINES-1,0);
-            refresh();
+            showControls(1);
+            
             pause();
 
         }
@@ -88,28 +79,32 @@ int main() {
         // Difficulty screen
         else if (gameState == 1) {
             signal(SIGIO, difficultyInput);
-            // enable_kbd_signals();
             drawCourt();
             difficultyMenu();
             move(difRow,difCol);
             addch('>');
             refresh();
 
-            while (gameState == 1 && !done)
+            while (gameState == 1)
                 pause();
         }
 
         // Actual game
         else if (gameState == 2) {
             startGame();
-            while (!done && gameState == 2) {
+            while (gameState == 2)
                 pause();
-            }
+        }
 
+        // Loss screen
+        else if (gameState == 3) {
+            lossScreen();
+            pause();
+            // pause();
         }
 
         // Pause screen
-        else if (gameState == 3) {
+        else if (gameState == 4) {
 
         }
     }
@@ -155,12 +150,9 @@ void difficultyInput(int signum) {
         case 'Q':
 			done = 1;
 			break;
-        case 'M':
-			gameState = 0;
-			break;
         case 10:
-            clear();
             signal(SIGINT, SIG_DFL);
+            clear();
             gameState = 2;
             break;
         case 'j':
@@ -170,6 +162,7 @@ void difficultyInput(int signum) {
                 mvaddch(difRow, difCol, BLANK);
                 difRow -= 2;
                 mvaddch(difRow, difCol, '>');
+                move(LINES-1,COLS-1);
                 refresh();
                 break;
             }
@@ -180,11 +173,126 @@ void difficultyInput(int signum) {
                 mvaddch(difRow, difCol, BLANK);
                 difRow += 2;
                 mvaddch(difRow, difCol, '>');
+                move(LINES-1,COLS-1);
                 refresh();
                 break;
             }
         
     }
+}
+
+void lossInput(int signum) {
+    int c = getch();
+
+    switch (c)
+    {
+        case 'Q':
+            done = 1;
+            break;
+        case 'y':
+            signal(SIGINT, SIG_DFL);
+            clear();
+            gameState = 2;
+            break;
+        case 'Y':
+            signal(SIGINT, SIG_DFL);
+            clear();
+            gameState = 2;
+            break;
+        case 'n':
+            done = 1;
+            break;
+        case 'N':
+            done = 1;
+            break;
+    }
+}
+
+void pauseInput(int signum) {
+    int c = getch();
+
+    
+    if (c == 27) {
+        switch (selectedDif)
+        {
+            case 0:
+                setTicker(1000/10);
+                mvaddstr(15,55,"      ");
+                showControls(0);
+                refresh();
+                break;
+            case 1:
+                setTicker(1000/50);
+                mvaddstr(15,55,"      ");
+                showControls(0);
+                refresh();
+                break;
+            case 2:
+                setTicker(1000/100);
+                mvaddstr(15,55,"      ");
+                showControls(0);
+                refresh();
+                break;
+            case 3:
+                setTicker(1000/150);
+                mvaddstr(15,55,"      ");
+                showControls(0);
+                refresh();
+                break;
+            case 4:
+                setTicker(1000/250);
+                mvaddstr(15,55,"      ");
+                showControls(0);
+                refresh();
+                break;
+
+        }
+    }
+}
+
+void showControls(int visible) {
+    if (!visible) {
+        move(23,55);
+        addstr("         ");
+        move(25,45);
+        addstr("     ");
+        move(27,45);
+        addstr("       ");
+        move(25,55);
+        addstr("          ");
+        move(27,55);
+        addstr("          ");
+        move(25,69);
+        addstr("       ");
+        move(LINES-1,COLS-1);
+        refresh();
+    } else {    
+        move(23,55);
+        addstr("Controls:");
+        move(25,45);
+        addstr("Up: j");
+        move(27,45);
+        addstr("Down: k");
+        move(25,55);
+        addstr("Restart: r");
+        move(27,55);
+        addstr("Pause: Esc");
+        move(25,69);
+        addstr("Quit: Q");
+        move(LINES-1,COLS-1);
+        refresh();
+    }
+}
+
+void lossScreen() {
+    clear();
+    signal(SIGIO, lossInput);
+    drawCourt();
+    mvaddstr(15,52,"GAME OVER");
+    mvaddstr(18,48,"Play Again? (Y/n)");
+    mvaddstr(20,53,"Quit: Q");
+    move(LINES-1,COLS-1);
+    refresh();
 }
 
 void startGame() {
@@ -200,6 +308,7 @@ void startGame() {
 	// the_paddle.x_pos = PAD_X;
 	// the_paddle.y_pos = PAD_Y_INIT;
 	// the_paddle.y_pos = PAD_Y_INIT;
+    score = 0;
 	snprintf(scoreStr, 20, "%d", score);
 	mvaddstr(0, 45, "Score ");
 	mvaddstr(0, 52, scoreStr);
@@ -215,7 +324,25 @@ void startGame() {
     refresh();
 
     signal(SIGALRM, ballMove);
-    setTicker(1000/TICKS_PER_SEC);
+    switch (selectedDif)
+    {
+        case 0:
+            setTicker(1000/10);
+            break;
+        case 1:
+            setTicker(1000/50);
+            break;
+        case 2:
+            setTicker(1000/100);
+            break;
+        case 3:
+            setTicker(1000/150);
+            break;
+        case 4:
+            setTicker(1000/250);
+            break;
+
+    }
 }
 
 
@@ -268,17 +395,26 @@ int bounceOrLose(struct ppball *bp) {
 		bp->x_dir = 1 ;
         returnVal = 1 ;
 	} else if ( bp->x_pos == RIGHT_EDGE ){
-		done = 1;
+		score += 1;
+        snprintf(scoreStr, 20, "%d", score);
+		mvaddstr(0, 51, "Score: ");
+        mvaddstr(0, 58, scoreStr);
+        mvaddch(the_Ball.y_pos, the_Ball.x_pos, BLANK);
+        the_Ball.y_pos = Y_INIT;
+        the_Ball.x_pos = X_INIT;
+        the_Ball.y_ttg = the_Ball.y_ttm = Y_TTM;
+        the_Ball.x_ttg = the_Ball.x_ttm = X_TTM;
+        the_Ball.y_dir = 1;
+        the_Ball.x_dir = 1;
+        if (score == 10) {
+            gameState = 3;
+            clear();
+        }
         returnVal = 1;
 	}
     else if ((bp->y_pos >= pRow && bp->y_pos < pRow+5) && bp->x_pos == pCol-1) {
 		bp->x_dir = -1;
 		returnVal = 1;
-		score += 1;
-        snprintf(scoreStr, 20, "%d", score);
-		mvaddstr(0, 51, "Score: ");
-        mvaddstr(0, 58, scoreStr);
-        refresh();
 	}
 
     return returnVal;
@@ -292,11 +428,15 @@ void paddleInput(int signum) {
         case 'Q':
             done = 1;
             break;
-        case EOF:
-            done = 1;
+        case 27:
+            setTicker(0);
+            signal(SIGIO, pauseInput);
+            mvaddstr(15,55,"Paused");
+            showControls(1);
+            refresh();
             break;
         case 'j':
-            if (pRow > 0)
+            if (pRow > 1)
             {
                 mvaddstr(pRow+4, pCol, " ");
                 pRow--;
@@ -308,7 +448,7 @@ void paddleInput(int signum) {
                 break;
             }
         case 'k':
-            if (pRow < 30)
+            if (pRow < 25)
             {
                 mvaddstr(pRow, pCol, " ");
                 pRow++;
