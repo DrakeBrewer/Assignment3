@@ -25,30 +25,83 @@ int bounceOrLose(struct ppball *);
 void ballMove(int);
 void drawCourt();
 void chooseDifficulty(int);
+void enable_kbd_signals();
+void movePaddle(int);
+void mmInput(int);
+
+int done = 0;
+int gameState = 0;
+int score = 0;
+
+int selectedDif = 0;
+int difCol = 50;
+int difRow = 16;
+
 
 int main() {
-    int c;
-
+    // int c = getch();
     setUp();
 
-    while ((c = getchar()) != 'Q') {
-        // if (c == 'f') the_Ball.x_ttm--;
-        // else if (c == 's') the_Ball.x_ttm++;
-        // else if (c == 'F') the_Ball.y_ttm--;
-        // else if (c == 'S') the_Ball.y_ttm++;
 
-        switch (c)
-        {
-            case 13:
-                clear();
-                drawCourt();
-                difficultyMenu();
-                chooseDifficulty(&c);
-                refresh();
-                break;
-            
-            default:
-                break;
+    while (!done) {
+        // Title screen
+        if (gameState == 0) {
+            clear();
+            signal(SIGIO, mmInput);
+            enable_kbd_signals();
+            drawCourt();
+            drawPong();
+            move(21,52);
+            addstr("Press Enter to play");
+            move(23,55);
+            addstr("Controls:");
+            move(25,45);
+            addstr("Up: j");
+            move(27,45);
+            addstr("Down: k");
+            move(25,55);
+            addstr("Restart: r");
+            move(27,55);
+            addstr("Pause: p");
+            move(25,69);
+            addstr("Main Menu: M");
+            move(27,69);
+            addstr("Quit: Q");
+            move(LINES-1,0);
+            refresh();
+            pause();
+
+        }
+
+        // Difficulty screen
+        else if (gameState == 1) {
+            clear();
+            signal(SIGIO, chooseDifficulty);
+            enable_kbd_signals();
+            drawCourt();
+            difficultyMenu();
+            move(difRow,difCol);
+            addch('>');
+            refresh();
+
+            while (gameState == 1 && !done)
+                pause();
+        }
+
+        // Actual game
+        else if (gameState == 2) {
+            // clear();
+            // signal(SIGIO, playGame);
+            // drawCourt();
+            // drawPaddle();
+            // startGame();
+
+
+        }
+
+        // Pause screen
+        else if (gameState == 3) {
+
         }
     }
 
@@ -58,48 +111,69 @@ int main() {
 void setUp() {
     initscr();
     clear();
-
-    drawCourt();
-    drawPong();
-    move(25,52);
-    addstr("Press Enter to play");
-    move(LINES-1,0);
-
-    refresh();
-
     noecho();
     crmode();
+    // enable_kbd_signals(); 
+
 }
 
-void chooseDifficulty(int select) {
-    int selectedDif = 0;
-    int cursorPos = 12;
-    
-    mvaddch(cursorPos,50,'#');
-    move(LINES-1,0);
-    // refresh();
 
-    switch (select)
+void wrapUp() {
+    setTicker(0);
+    endwin();
+}
+
+void mmInput(int signum) {
+    int	c = getch();
+	switch (c)
+	{
+		case 'Q':
+			done = 1;
+			break;
+		case 10:
+			gameState = 1;
+			break;
+		case 13:
+			gameState = 1;
+			break;
+	}
+}
+
+void chooseDifficulty(int signum) {
+    int c = getch();
+
+    switch (c)
     {
+        case 'Q':
+			done = 1;
+			break;
+        case 'M':
+			gameState = 0;
+			break;
+        case 10:
+            gameState = 2;
+            break;
         case 'j':
-            // if (cursorPos < 20)
-            // {
-                selectedDif++;
-                mvaddch(cursorPos += 2,50,'#');
-                refresh();
-                move(LINES-1,0);
-            // }
-        case 'k':
-            if (cursorPos > 12) 
+            if (difRow > 12)
             {
                 selectedDif--;
-                mvaddch(cursorPos -= 2,50,'#');
+                mvaddch(difRow, difCol, BLANK);
+                difRow -= 2;
+                mvaddch(difRow, difCol, '>');
                 refresh();
-                move(LINES-1,0);
+                break;
             }
-        case 13:
-            // selectDifficulty(selectedDif);
-            break;
+        case 'k':
+            if (difRow < 20) 
+            {
+                selectedDif++;
+                mvaddch(difRow, difCol, BLANK);
+                difRow += 2;
+                mvaddch(difRow, difCol, '>');
+                refresh();
+                break;
+            }
+        
     }
 }
 
@@ -127,10 +201,6 @@ void startGame() {
     setTicker(1000/TICKS_PER_SEC);
 }
 
-void wrapUp() {
-    setTicker(0);
-    endwin();
-}
 
 void ballMove(int signum) {
     int y_cur, x_cur, moved;
@@ -200,7 +270,20 @@ int setTicker( int nMsecs )
 	return setitimer(ITIMER_REAL, &newTimeset, NULL);
 }
 
+// ============================================
+// Signal handling
+// ============================================
+void enable_kbd_signals()
+{
+	int  fd_flags;
 
+	fcntl(0, F_SETOWN, getpid());
+	fd_flags = fcntl(0, F_GETFL);
+	fcntl(0, F_SETFL, (fd_flags|O_ASYNC));
+}
+
+
+// ============================================
 // Drawing functions
 // ============================================
 
@@ -223,12 +306,12 @@ void difficultyMenu() {
     move(8,52);
 	addstr("Choose a Difficulty!");
     int yVal = 12;
+    
     move(yVal,52);
     for (int ii=0; ii<=4; ii++) {
-        mvaddstr(yVal,52,difficulties[ii].name);
-        yVal+=2;  
+        mvaddstr(yVal, 52, difficulties[ii].name);
+        yVal += 2;
     }
-	move(LINES-1,0);
 }
 
 // draws the title of the game
