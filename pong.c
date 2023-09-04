@@ -20,35 +20,47 @@ struct difficulty difficulties[] = {
 
 void setUp();
 void wrapUp();
+
 int setTicker(int);
+
+void mmInput(int);
+
+void startGame();
 int bounceOrLose(struct ppball *);
 void ballMove(int);
-void drawCourt();
-void chooseDifficulty(int);
+
+void difficultyInput(int);
+
+void paddleInput(int);
+
 void enable_kbd_signals();
-void movePaddle(int);
-void mmInput(int);
+void drawCourt();
 
 int done = 0;
 int gameState = 0;
-int score = 0;
 
-int selectedDif = 0;
+int selectedDif = 2;
 int difCol = 50;
 int difRow = 16;
+
+// score stuff
+int score = 0;
+char scoreStr[20];
+
+// paddle stuff
+int	pRow = 10;
+int	pCol = 114;
 
 
 int main() {
     // int c = getch();
     setUp();
 
-
     while (!done) {
         // Title screen
         if (gameState == 0) {
-            clear();
             signal(SIGIO, mmInput);
-            enable_kbd_signals();
+            // enable_kbd_signals();
             drawCourt();
             drawPong();
             move(21,52);
@@ -75,9 +87,8 @@ int main() {
 
         // Difficulty screen
         else if (gameState == 1) {
-            clear();
-            signal(SIGIO, chooseDifficulty);
-            enable_kbd_signals();
+            signal(SIGIO, difficultyInput);
+            // enable_kbd_signals();
             drawCourt();
             difficultyMenu();
             move(difRow,difCol);
@@ -90,12 +101,10 @@ int main() {
 
         // Actual game
         else if (gameState == 2) {
-            // clear();
-            // signal(SIGIO, playGame);
-            // drawCourt();
-            // drawPaddle();
-            // startGame();
-
+            startGame();
+            while (!done && gameState == 2) {
+                pause();
+            }
 
         }
 
@@ -113,7 +122,7 @@ void setUp() {
     clear();
     noecho();
     crmode();
-    // enable_kbd_signals(); 
+    enable_kbd_signals(); 
 
 }
 
@@ -131,15 +140,14 @@ void mmInput(int signum) {
 			done = 1;
 			break;
 		case 10:
-			gameState = 1;
-			break;
-		case 13:
+            signal(SIGINT, SIG_DFL);
+            clear();
 			gameState = 1;
 			break;
 	}
 }
 
-void chooseDifficulty(int signum) {
+void difficultyInput(int signum) {
     int c = getch();
 
     switch (c)
@@ -151,6 +159,8 @@ void chooseDifficulty(int signum) {
 			gameState = 0;
 			break;
         case 10:
+            clear();
+            signal(SIGINT, SIG_DFL);
             gameState = 2;
             break;
         case 'j':
@@ -178,8 +188,6 @@ void chooseDifficulty(int signum) {
 }
 
 void startGame() {
-    void ballMove(int);
-
     the_Ball.y_pos = Y_INIT;
     the_Ball.x_pos = X_INIT;
     the_Ball.y_ttg = the_Ball.y_ttm = Y_TTM;
@@ -188,10 +196,19 @@ void startGame() {
     the_Ball.x_dir = 1;
     the_Ball.symbol = DFL_SYMBOL;
 
-    initscr();
+    // the_paddle.height = 5;
+	// the_paddle.x_pos = PAD_X;
+	// the_paddle.y_pos = PAD_Y_INIT;
+	// the_paddle.y_pos = PAD_Y_INIT;
+	snprintf(scoreStr, 20, "%d", score);
+	mvaddstr(0, 45, "Score ");
+	mvaddstr(0, 52, scoreStr);
+	for (int ii = 0; ii < 5; ii++) {
+        mvaddstr(pRow+ii, pCol, "#");
+    }
+
     drawCourt();
-    noecho();
-    crmode();
+
 
     signal(SIGINT, SIG_IGN);
     mvaddch(the_Ball.y_pos, the_Ball.x_pos, the_Ball.symbol);
@@ -210,6 +227,9 @@ void ballMove(int signum) {
     x_cur = the_Ball.x_pos;
     moved = 0;
 
+    signal(SIGIO, paddleInput);
+	enable_kbd_signals();
+
     if (the_Ball.y_ttm > 0 && the_Ball.y_ttg-- == 1) {
         the_Ball.y_pos += the_Ball.y_dir;
         the_Ball.y_ttg += the_Ball.y_ttm;
@@ -227,6 +247,7 @@ void ballMove(int signum) {
         mvaddch(y_cur, x_cur, BLANK);
         mvaddch(the_Ball.y_pos, the_Ball.x_pos, the_Ball.symbol);
         bounceOrLose(&the_Ball);
+        move(LINES-1,COLS-1);
         refresh();
     }
 
@@ -247,11 +268,58 @@ int bounceOrLose(struct ppball *bp) {
 		bp->x_dir = 1 ;
         returnVal = 1 ;
 	} else if ( bp->x_pos == RIGHT_EDGE ){
-		bp->x_dir = -1;
+		done = 1;
         returnVal = 1;
+	}
+    else if ((bp->y_pos >= pRow && bp->y_pos < pRow+5) && bp->x_pos == pCol-1) {
+		bp->x_dir = -1;
+		returnVal = 1;
+		score += 1;
+        snprintf(scoreStr, 20, "%d", score);
+		mvaddstr(0, 51, "Score: ");
+        mvaddstr(0, 58, scoreStr);
+        refresh();
 	}
 
     return returnVal;
+}
+
+void paddleInput(int signum) {
+    int	c = getch();		  /* grab the char */
+
+    switch (c) 
+    {
+        case 'Q':
+            done = 1;
+            break;
+        case EOF:
+            done = 1;
+            break;
+        case 'j':
+            if (pRow > 0)
+            {
+                mvaddstr(pRow+4, pCol, " ");
+                pRow--;
+                for (int ii = 0; ii < 5; ii++) {
+                    mvaddstr(pRow+ii, pCol, "#");
+                }
+                move(LINES-1,COLS-1);
+                refresh();
+                break;
+            }
+        case 'k':
+            if (pRow < 30)
+            {
+                mvaddstr(pRow, pCol, " ");
+                pRow++;
+                for (int ii = 0; ii < 5; ii++) {
+                    mvaddstr(pRow+ii, pCol, "#");
+                }
+                move(LINES-1,COLS-1);
+                refresh();
+                break;
+            }
+    }
 }
 
 int setTicker( int nMsecs )
