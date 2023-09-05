@@ -8,6 +8,7 @@
 #include "bounce.h"
 
 struct ppball the_Ball;
+struct pppaddle the_Paddle;
 
 struct difficulty {int level; char *name;};
 struct difficulty difficulties[] = {
@@ -24,8 +25,8 @@ void wrapUp();
 int setTicker(int);
 int updateScore(int, char *);
 
-void startGame(struct ppball *);
-int bounceOrLose(struct ppball *);
+void startGame(struct ppball *, struct pppaddle *);
+int bounceOrLose(struct ppball *, struct pppaddle *);
 void resetBall(struct ppball *);
 void ballMove(int);
 
@@ -56,8 +57,8 @@ int score = 0;
 char scoreStr[20];
 
 // paddle stuff
-int	pRow = 10;
-int	pCol = 114;
+// int	pRow = 10;
+// int	pCol = 114;
 
 
 int main() {
@@ -82,7 +83,7 @@ int main() {
 
         // Actual game
         else if (gameState == 2) {
-            startGame(&the_Ball);
+            startGame(&the_Ball, &the_Paddle);
             while (gameState == 2)
                 pause();
         }
@@ -293,26 +294,30 @@ void lossScreen() {
     refresh();
 }
 
-void startGame(struct ppball *bp) {
+void startGame(struct ppball *bp, struct pppaddle *pp) {
     resetBall(bp);
+    resetPaddle(pp);
 
     // the_paddle.height = 5;
 	// the_paddle.x_pos = PAD_X;
 	// the_paddle.y_pos = PAD_Y_INIT;
 	// the_paddle.y_pos = PAD_Y_INIT;
-    score = 0;
+    score = 1;
 	snprintf(scoreStr, 20, "%d", score);
 	mvaddstr(0, 45, "Score ");
 	mvaddstr(0, 52, scoreStr);
     refresh();
-	for (int ii = 0; ii < 5; ii++) {
-        mvaddch(pRow+ii, pCol, '#');
-    }
+	// for (int ii = 0; ii < 5; ii++) {
+    //     mvaddch(pRow+ii, pCol, '#');
+    // }
 
     drawCourt();
 
 
     signal(SIGINT, SIG_IGN);
+    for (int ii = 0; ii < pp->height; ii++) {
+        mvaddch(pp->y_pos+ii, pp->x_pos, pp->symbol);
+    }
     mvaddch(bp->y_pos, bp->x_pos, bp->symbol);
     refresh();
 
@@ -339,6 +344,16 @@ void setDifficulty(int dif) {
             setTicker(1000/250);
             break;
     }
+}
+
+void resetPaddle(struct pppaddle *pp) {
+    for (int ii = 0; ii < pp->height; ii++) {
+        mvaddch(pp->y_pos+ii, pp->x_pos, BLANK);
+    }
+    pp->y_pos = P_Y_INIT;
+    pp->x_pos = P_X_POS;
+    pp->height = P_HEIGHT;
+    pp->symbol = P_SYMBOL;
 }
 
 void resetBall(struct ppball *bp) {
@@ -380,7 +395,7 @@ void ballMove(int signum) {
         mvaddch(y_cur, x_cur, BLANK);
         mvaddch(y_cur, x_cur, BLANK);
         mvaddch(the_Ball.y_pos, the_Ball.x_pos, the_Ball.symbol);
-        bounceOrLose(&the_Ball);
+        bounceOrLose(&the_Ball, &the_Paddle);
         move(LINES-1,COLS-1);
         refresh();
     }
@@ -388,7 +403,7 @@ void ballMove(int signum) {
     signal(SIGALRM, ballMove);
 }
 
-int bounceOrLose(struct ppball *bp) {
+int bounceOrLose(struct ppball *bp, struct pppaddle *pp) {
     int returnVal = 0;
 
     if ( bp->y_pos == TOP_ROW ){
@@ -405,13 +420,13 @@ int bounceOrLose(struct ppball *bp) {
         score = updateScore(score, scoreStr);
 
         resetBall(bp);
-        if (score == 10) {
+        if (score == 11) {
             gameState = 3;
             clear();
         }
         returnVal = 1;
 	}
-    else if ((bp->y_pos >= pRow && bp->y_pos < pRow+5) && bp->x_pos == pCol-1) {
+    else if ((bp->y_pos >= pp->y_pos && bp->y_pos < (pp->y_pos)+5) && bp->x_pos == (pp->x_pos)-1) {
 		bp->x_dir = -1;
 		returnVal = 1;
 	}
@@ -444,12 +459,12 @@ void paddleInput(int signum) {
             break;
 
         case 'j':
-            if (pRow > 1)
+            if (the_Paddle.y_pos > 1)
             {
-                mvaddch(pRow+4, pCol, ' ');
-                pRow--;
+                mvaddch(the_Paddle.y_pos+4, the_Paddle.x_pos, ' ');
+                the_Paddle.y_pos--;
                 for (int ii = 0; ii < 5; ii++) {
-                    mvaddch(pRow+ii, pCol, '#');
+                    mvaddch(the_Paddle.y_pos+ii, the_Paddle.x_pos, '#');
                 }
                 move(LINES-1,COLS-1);
                 refresh();
@@ -457,12 +472,12 @@ void paddleInput(int signum) {
             }
 
         case 'k':
-            if (pRow < 25)
+            if (the_Paddle.y_pos < 25)
             {
-                mvaddch(pRow, pCol, ' ');
-                pRow++;
+                mvaddch(the_Paddle.y_pos, the_Paddle.x_pos, ' ');
+                the_Paddle.y_pos++;
                 for (int ii = 0; ii < 5; ii++) {
-                    mvaddch(pRow+ii, pCol, '#');
+                    mvaddch(the_Paddle.y_pos+ii, the_Paddle.x_pos, '#');
                 }
                 move(LINES-1,COLS-1);
                 refresh();

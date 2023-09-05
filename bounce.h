@@ -13,7 +13,10 @@
 #define	B_Y_TTM		8
 
 // paddle constants
-
+#define P_SYMBOL    '#'
+#define	P_X_POS	    114
+#define	P_Y_INIT	10
+#define	P_HEIGHT	5
 
 /** the ping pong ball **/
 struct ppball {
@@ -21,8 +24,13 @@ struct ppball {
         y_ttm, x_ttm,
         y_ttg, x_ttg,
         y_dir, x_dir;
-    char	symbol ;
-
+    
+    char symbol;
 };
 
-/** the ping pong paddle**/
+/** the ping pong paddle **/
+struct pppaddle {
+    int y_pos, x_pos, height;
+
+    char symbol;
+};
