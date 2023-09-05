@@ -22,9 +22,11 @@ void setUp();
 void wrapUp();
 
 int setTicker(int);
+int updateScore(int, char *);
 
-void startGame();
+void startGame(struct ppball *);
 int bounceOrLose(struct ppball *);
+void resetBall(struct ppball *);
 void ballMove(int);
 
 void menuScreen();
@@ -80,7 +82,7 @@ int main() {
 
         // Actual game
         else if (gameState == 2) {
-            startGame();
+            startGame(&the_Ball);
             while (gameState == 2)
                 pause();
         }
@@ -129,7 +131,6 @@ void difficultyScreen() {
     signal(SIGIO, difficultyInput);
     drawCourt();
     difficultyMenu();
-    // move(difRow,difCol);
     mvaddch(difRow,difCol,'>');
     move(LINES-1,COLS-1);
     refresh();
@@ -188,9 +189,6 @@ void lossInput(int signum) {
 
     switch (c)
     {
-        case 'Q':
-            done = 1;
-            break;
         case 'y':
             signal(SIGINT, SIG_DFL);
             clear();
@@ -291,19 +289,12 @@ void lossScreen() {
     drawCourt();
     mvaddstr(15,52,"GAME OVER");
     mvaddstr(18,48,"Play Again? (Y/n)");
-    mvaddstr(20,53,"Quit: Q");
     move(LINES-1,COLS-1);
     refresh();
 }
 
-void startGame() {
-    the_Ball.y_pos = Y_INIT;
-    the_Ball.x_pos = X_INIT;
-    the_Ball.y_ttg = the_Ball.y_ttm = Y_TTM;
-    the_Ball.x_ttg = the_Ball.x_ttm = X_TTM;
-    the_Ball.y_dir = 1;
-    the_Ball.x_dir = 1;
-    the_Ball.symbol = DFL_SYMBOL;
+void startGame(struct ppball *bp) {
+    resetBall(bp);
 
     // the_paddle.height = 5;
 	// the_paddle.x_pos = PAD_X;
@@ -313,15 +304,16 @@ void startGame() {
 	snprintf(scoreStr, 20, "%d", score);
 	mvaddstr(0, 45, "Score ");
 	mvaddstr(0, 52, scoreStr);
+    refresh();
 	for (int ii = 0; ii < 5; ii++) {
-        mvaddstr(pRow+ii, pCol, "#");
+        mvaddch(pRow+ii, pCol, '#');
     }
 
     drawCourt();
 
 
     signal(SIGINT, SIG_IGN);
-    mvaddch(the_Ball.y_pos, the_Ball.x_pos, the_Ball.symbol);
+    mvaddch(bp->y_pos, bp->x_pos, bp->symbol);
     refresh();
 
     signal(SIGALRM, ballMove);
@@ -347,6 +339,17 @@ void setDifficulty(int dif) {
             setTicker(1000/250);
             break;
     }
+}
+
+void resetBall(struct ppball *bp) {
+    mvaddch(bp->y_pos, bp->x_pos, BLANK);
+    bp->y_pos = B_Y_INIT;
+    bp->x_pos = B_X_INIT;
+    bp->y_ttg = bp->y_ttm = B_Y_TTM;
+    bp->x_ttg = bp->x_ttm = B_X_TTM;
+    bp->y_dir = 1;
+    bp->x_dir = 1;
+    bp->symbol = DFL_SYMBOL;
 }
 
 
@@ -399,17 +402,9 @@ int bounceOrLose(struct ppball *bp) {
 		bp->x_dir = 1 ;
         returnVal = 1 ;
 	} else if ( bp->x_pos == RIGHT_EDGE ){
-		score += 1;
-        snprintf(scoreStr, 20, "%d", score);
-		mvaddstr(0, 51, "Score: ");
-        mvaddstr(0, 58, scoreStr);
-        mvaddch(the_Ball.y_pos, the_Ball.x_pos, BLANK);
-        the_Ball.y_pos = Y_INIT;
-        the_Ball.x_pos = X_INIT;
-        the_Ball.y_ttg = the_Ball.y_ttm = Y_TTM;
-        the_Ball.x_ttg = the_Ball.x_ttm = X_TTM;
-        the_Ball.y_dir = 1;
-        the_Ball.x_dir = 1;
+        score = updateScore(score, scoreStr);
+
+        resetBall(bp);
         if (score == 10) {
             gameState = 3;
             clear();
@@ -422,6 +417,14 @@ int bounceOrLose(struct ppball *bp) {
 	}
 
     return returnVal;
+}
+
+int updateScore(int count, char *str) {
+    snprintf(str, 20, "%d", count);
+    mvaddstr(0, 55, "Score: ");
+    mvaddstr(0, 62, str);
+
+    return count+=1;
 }
 
 void paddleInput(int signum) {
@@ -439,25 +442,27 @@ void paddleInput(int signum) {
             showControls(1);
             refresh();
             break;
+
         case 'j':
             if (pRow > 1)
             {
-                mvaddstr(pRow+4, pCol, " ");
+                mvaddch(pRow+4, pCol, ' ');
                 pRow--;
                 for (int ii = 0; ii < 5; ii++) {
-                    mvaddstr(pRow+ii, pCol, "#");
+                    mvaddch(pRow+ii, pCol, '#');
                 }
                 move(LINES-1,COLS-1);
                 refresh();
                 break;
             }
+
         case 'k':
             if (pRow < 25)
             {
-                mvaddstr(pRow, pCol, " ");
+                mvaddch(pRow, pCol, ' ');
                 pRow++;
                 for (int ii = 0; ii < 5; ii++) {
-                    mvaddstr(pRow+ii, pCol, "#");
+                    mvaddch(pRow+ii, pCol, '#');
                 }
                 move(LINES-1,COLS-1);
                 refresh();
