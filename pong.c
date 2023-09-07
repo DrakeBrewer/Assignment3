@@ -206,6 +206,11 @@ void lossInput(int signum) {
         case 'N':
             done = 1;
             break;
+        case 'd':
+            clear();
+            setTicker(0);
+            gameState = 1;
+            break;
     }
 }
 
@@ -254,6 +259,11 @@ void pauseInput(int signum) {
     else if (c == 'r') {
         startGame(&the_Ball, &the_Paddle);
     }
+    else if (c == 'd') {
+        clear();
+        setTicker(0);
+        gameState = 1;
+    }
 }
 
 void showControls(int visible) {
@@ -269,6 +279,8 @@ void showControls(int visible) {
         move(27,55);
         addstr("          ");
         move(25,69);
+        addstr("             ");
+        move(27,69);
         addstr("       ");
         move(LINES-1,COLS-1);
         refresh();
@@ -284,6 +296,8 @@ void showControls(int visible) {
         move(27,55);
         addstr("Pause: Esc");
         move(25,69);
+        addstr("Difficulty: d");
+        move(27,69);
         addstr("Quit: Q");
         move(LINES-1,COLS-1);
         refresh();
@@ -297,6 +311,7 @@ void lossScreen() {
     drawCourt();
     mvaddstr(15,52,"GAME OVER");
     mvaddstr(18,48,"Play Again? (Y/n)");
+    mvaddstr(20,40,"Play Again and change difficulty? (d)");
     move(LINES-1,COLS-1);
     refresh();
 }
