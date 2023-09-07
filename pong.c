@@ -268,41 +268,8 @@ void pauseInput(int signum) {
     if (c == 27) {
         mvaddstr(15,55,"      ");
         showControls(0);
-        // switch (selectedDif)
-        // {
         setDifficulty(selectedDif);
         refresh();
-            // case 0:
-            //     setTicker(1000/10);
-                
-            //     refresh();
-            //     break;
-            // case 1:
-            //     setTicker(1000/50);
-            //     mvaddstr(15,55,"      ");
-            //     showControls(0);
-            //     refresh();
-            //     break;
-            // case 2:
-            //     setTicker(1000/100);
-            //     mvaddstr(15,55,"      ");
-            //     showControls(0);
-            //     refresh();
-            //     break;
-            // case 3:
-            //     setTicker(1000/150);
-            //     mvaddstr(15,55,"      ");
-            //     showControls(0);
-            //     refresh();
-            //     break;
-            // case 4:
-            //     setTicker(1000/250);
-            //     mvaddstr(15,55,"      ");
-            //     showControls(0);
-            //     refresh();
-            //     break;
-
-        // }
     }
     else if (c == 'Q') {
         done = 1;
