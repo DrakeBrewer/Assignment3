@@ -56,10 +56,6 @@ int difRow = 16;
 int score = 0;
 char scoreStr[20];
 
-// paddle stuff
-// int	pRow = 10;
-// int	pCol = 114;
-
 
 int main() {
     // int c = getch();
@@ -77,19 +73,20 @@ int main() {
         else if (gameState == 1) {
             difficultyScreen();
 
-            while (gameState == 1)
-                pause();
+            // while (gameState == 1)
+            pause();
         }
 
         // Actual game
         else if (gameState == 2) {
             startGame(&the_Ball, &the_Paddle);
-            while (gameState == 2)
+            while (gameState == 2 && !done)
                 pause();
         }
 
         // Loss screen
         else if (gameState == 3) {
+            clear();
             lossScreen();
             pause();
         }
@@ -103,12 +100,13 @@ void setUp() {
     clear();
     noecho();
     crmode();
-    enable_kbd_signals(); 
-
+    signal(SIGINT, SIG_IGN);
+    enable_kbd_signals();
 }
 
 
 void wrapUp() {
+    signal(SIGINT, SIG_DFL);
     setTicker(0);
     endwin();
 }
@@ -129,7 +127,10 @@ void mmInput(int signum) {
 }
 
 void difficultyScreen() {
-    signal(SIGIO, difficultyInput);
+
+    if (signal(SIGIO, difficultyInput) == SIG_ERR) {
+        gameState = 0;
+    }
     drawCourt();
     difficultyMenu();
     mvaddch(difRow,difCol,'>');
@@ -187,16 +188,15 @@ void difficultyInput(int signum) {
 
 void lossInput(int signum) {
     int c = getch();
+    signal(SIGINT, SIG_DFL);
 
     switch (c)
     {
         case 'y':
-            signal(SIGINT, SIG_DFL);
             clear();
             gameState = 2;
             break;
         case 'Y':
-            signal(SIGINT, SIG_DFL);
             clear();
             gameState = 2;
             break;
@@ -248,6 +248,12 @@ void pauseInput(int signum) {
 
         }
     }
+    else if (c == 'Q') {
+        done = 1;
+    }
+    else if (c == 'r') {
+        startGame(&the_Ball, &the_Paddle);
+    }
 }
 
 void showControls(int visible) {
@@ -285,6 +291,7 @@ void showControls(int visible) {
 }
 
 void lossScreen() {
+    setTicker(0);
     clear();
     signal(SIGIO, lossInput);
     drawCourt();
@@ -295,26 +302,20 @@ void lossScreen() {
 }
 
 void startGame(struct ppball *bp, struct pppaddle *pp) {
+    clear();
     resetBall(bp);
     resetPaddle(pp);
 
-    // the_paddle.height = 5;
-	// the_paddle.x_pos = PAD_X;
-	// the_paddle.y_pos = PAD_Y_INIT;
-	// the_paddle.y_pos = PAD_Y_INIT;
     score = 1;
 	snprintf(scoreStr, 20, "%d", score);
 	mvaddstr(0, 45, "Score ");
 	mvaddstr(0, 52, scoreStr);
     refresh();
-	// for (int ii = 0; ii < 5; ii++) {
-    //     mvaddch(pRow+ii, pCol, '#');
-    // }
 
     drawCourt();
 
 
-    signal(SIGINT, SIG_IGN);
+    // signal(SIGINT, SIG_IGN);
     for (int ii = 0; ii < pp->height; ii++) {
         mvaddch(pp->y_pos+ii, pp->x_pos, pp->symbol);
     }
@@ -371,13 +372,12 @@ void resetBall(struct ppball *bp) {
 void ballMove(int signum) {
     int y_cur, x_cur, moved;
 
-    signal(SIGALRM, SIG_IGN);
+    // signal(SIGALRM, SIG_IGN);
     y_cur = the_Ball.y_pos;
     x_cur = the_Ball.x_pos;
     moved = 0;
 
     signal(SIGIO, paddleInput);
-	enable_kbd_signals();
 
     if (the_Ball.y_ttm > 0 && the_Ball.y_ttg-- == 1) {
         the_Ball.y_pos += the_Ball.y_dir;
@@ -449,6 +449,9 @@ void paddleInput(int signum) {
     {
         case 'Q':
             done = 1;
+            break;
+        case 'r':
+            startGame(&the_Ball, &the_Paddle);
             break;
         case 27:
             setTicker(0);

@@ -3,6 +3,8 @@
 </div>
 
 ### Compile instructions
+- Install ncurses if you haven't already
+  - `$ sudo apt-get install libncurses5-dev libncursesw5-dev`
 - Navigate to stored directory
 - Run `make`
 - Have fun!
