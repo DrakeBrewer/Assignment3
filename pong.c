@@ -10,13 +10,13 @@
 struct ppball the_Ball;
 struct pppaddle the_Paddle;
 
-struct difficulty {int level; char *name;};
+struct difficulty {int level; char *name; int value;};
 struct difficulty difficulties[] = {
-    {0, "I'm Too Young To Die"},
-    {1, "Hey, Not Too Rough"},
-    {2, "Hurt Me Plenty"},
-    {3, "Ultra-Violence"},
-    {4, "Nightmare!"}
+    {0, "I'm Too Young To Die.", 10},
+    {1, "Hey, Not Too Rough.", 50},
+    {2, "Hurt Me Plenty.", 100},
+    {3, "Ultra-Violence.", 200},
+    {4, "Nightmare!", 400}
 };
 
 void setUp();
@@ -45,20 +45,21 @@ void showControls(int);
 void enable_kbd_signals();
 void drawCourt();
 
+// game globals
 int done = 0;
 int gameState = 0;
 
+// difficulty globals
 int selectedDif = 2;
 int difCol = 50;
 int difRow = 16;
 
-// score stuff
+// score globals
 int score = 0;
 char scoreStr[20];
 
 
 int main() {
-    // int c = getch();
     setUp();
 
     while (!done) {
@@ -95,6 +96,11 @@ int main() {
     wrapUp();
 }
 
+// *********************************************************************************
+// Setup and wrapup functions
+//     initialize and clear settings for
+//     the curses functions
+// *************************************
 void setUp() {
     initscr();
     clear();
@@ -109,6 +115,45 @@ void wrapUp() {
     signal(SIGINT, SIG_DFL);
     setTicker(0);
     endwin();
+}
+
+// *********************************************************************************
+// Screens
+//     functions to display the 
+//     various game states that the 
+//     user will see
+// ********************************
+void menuScreen() {
+    signal(SIGIO, mmInput);
+    drawCourt();
+    drawPong();
+    move(21,52);
+    addstr("Press Enter to play");
+    showControls(1);
+}
+
+void difficultyScreen() {
+
+    if (signal(SIGIO, difficultyInput) == SIG_ERR) {
+        gameState = 0;
+    }
+    drawCourt();
+    difficultyMenu();
+    mvaddch(difRow,difCol,'>');
+    move(LINES-1,COLS-1);
+    refresh();
+}
+
+void lossScreen() {
+    setTicker(0);
+    clear();
+    signal(SIGIO, lossInput);
+    drawCourt();
+    mvaddstr(15,52,"GAME OVER");
+    mvaddstr(18,48,"Play Again? (Y/n)");
+    mvaddstr(20,40,"Play Again and change difficulty? (d)");
+    move(LINES-1,COLS-1);
+    refresh();
 }
 
 void mmInput(int signum) {
@@ -126,27 +171,11 @@ void mmInput(int signum) {
 	}
 }
 
-void difficultyScreen() {
-
-    if (signal(SIGIO, difficultyInput) == SIG_ERR) {
-        gameState = 0;
-    }
-    drawCourt();
-    difficultyMenu();
-    mvaddch(difRow,difCol,'>');
-    move(LINES-1,COLS-1);
-    refresh();
-}
-
-void menuScreen() {
-    signal(SIGIO, mmInput);
-    drawCourt();
-    drawPong();
-    move(21,52);
-    addstr("Press Enter to play");
-    showControls(1);
-}
-
+// *********************************************************************************
+// Input handlers for signals
+//     Functions that when combined with signals, 
+//     handle the input at various states in the game.
+// ***************************************************
 void difficultyInput(int signum) {
     int c = getch();
 
@@ -186,6 +215,108 @@ void difficultyInput(int signum) {
     }
 }
 
+void paddleInput(int signum) {
+    int	c = getch();		  /* grab the char */
+
+    switch (c) 
+    {
+        case 'Q':
+            done = 1;
+            break;
+        case 'r':
+            startGame(&the_Ball, &the_Paddle);
+            break;
+        case 27:
+            setTicker(0);
+            signal(SIGIO, pauseInput);
+            mvaddstr(15,55,"Paused");
+            showControls(1);
+            refresh();
+            break;
+
+        case 'j':
+            if (the_Paddle.y_pos > 1)
+            {
+                mvaddch(the_Paddle.y_pos+4, the_Paddle.x_pos, ' ');
+                the_Paddle.y_pos--;
+                for (int ii = 0; ii < 5; ii++) {
+                    mvaddch(the_Paddle.y_pos+ii, the_Paddle.x_pos, '#');
+                }
+                move(LINES-1,COLS-1);
+                refresh();
+                break;
+            }
+
+        case 'k':
+            if (the_Paddle.y_pos < 25)
+            {
+                mvaddch(the_Paddle.y_pos, the_Paddle.x_pos, ' ');
+                the_Paddle.y_pos++;
+                for (int ii = 0; ii < 5; ii++) {
+                    mvaddch(the_Paddle.y_pos+ii, the_Paddle.x_pos, '#');
+                }
+                move(LINES-1,COLS-1);
+                refresh();
+                break;
+            }
+    }
+}
+
+void pauseInput(int signum) {
+    int c = getch();
+
+    if (c == 27) {
+        mvaddstr(15,55,"      ");
+        showControls(0);
+        // switch (selectedDif)
+        // {
+        setDifficulty(selectedDif);
+        refresh();
+            // case 0:
+            //     setTicker(1000/10);
+                
+            //     refresh();
+            //     break;
+            // case 1:
+            //     setTicker(1000/50);
+            //     mvaddstr(15,55,"      ");
+            //     showControls(0);
+            //     refresh();
+            //     break;
+            // case 2:
+            //     setTicker(1000/100);
+            //     mvaddstr(15,55,"      ");
+            //     showControls(0);
+            //     refresh();
+            //     break;
+            // case 3:
+            //     setTicker(1000/150);
+            //     mvaddstr(15,55,"      ");
+            //     showControls(0);
+            //     refresh();
+            //     break;
+            // case 4:
+            //     setTicker(1000/250);
+            //     mvaddstr(15,55,"      ");
+            //     showControls(0);
+            //     refresh();
+            //     break;
+
+        // }
+    }
+    else if (c == 'Q') {
+        done = 1;
+    }
+    else if (c == 'r') {
+        startGame(&the_Ball, &the_Paddle);
+    }
+    else if (c == 'd') {
+        clear();
+        setTicker(0);
+        gameState = 1;
+    }
+}
+
 void lossInput(int signum) {
     int c = getch();
     signal(SIGINT, SIG_DFL);
@@ -214,108 +345,12 @@ void lossInput(int signum) {
     }
 }
 
-void pauseInput(int signum) {
-    int c = getch();
-
-    if (c == 27) {
-        switch (selectedDif)
-        {
-            case 0:
-                setTicker(1000/10);
-                mvaddstr(15,55,"      ");
-                showControls(0);
-                refresh();
-                break;
-            case 1:
-                setTicker(1000/50);
-                mvaddstr(15,55,"      ");
-                showControls(0);
-                refresh();
-                break;
-            case 2:
-                setTicker(1000/100);
-                mvaddstr(15,55,"      ");
-                showControls(0);
-                refresh();
-                break;
-            case 3:
-                setTicker(1000/150);
-                mvaddstr(15,55,"      ");
-                showControls(0);
-                refresh();
-                break;
-            case 4:
-                setTicker(1000/250);
-                mvaddstr(15,55,"      ");
-                showControls(0);
-                refresh();
-                break;
-
-        }
-    }
-    else if (c == 'Q') {
-        done = 1;
-    }
-    else if (c == 'r') {
-        startGame(&the_Ball, &the_Paddle);
-    }
-    else if (c == 'd') {
-        clear();
-        setTicker(0);
-        gameState = 1;
-    }
-}
-
-void showControls(int visible) {
-    if (!visible) {
-        move(23,55);
-        addstr("         ");
-        move(25,45);
-        addstr("     ");
-        move(27,45);
-        addstr("       ");
-        move(25,55);
-        addstr("          ");
-        move(27,55);
-        addstr("          ");
-        move(25,69);
-        addstr("             ");
-        move(27,69);
-        addstr("       ");
-        move(LINES-1,COLS-1);
-        refresh();
-    } else {    
-        move(23,55);
-        addstr("Controls:");
-        move(25,45);
-        addstr("Up: j");
-        move(27,45);
-        addstr("Down: k");
-        move(25,55);
-        addstr("Restart: r");
-        move(27,55);
-        addstr("Pause: Esc");
-        move(25,69);
-        addstr("Difficulty: d");
-        move(27,69);
-        addstr("Quit: Q");
-        move(LINES-1,COLS-1);
-        refresh();
-    }
-}
-
-void lossScreen() {
-    setTicker(0);
-    clear();
-    signal(SIGIO, lossInput);
-    drawCourt();
-    mvaddstr(15,52,"GAME OVER");
-    mvaddstr(18,48,"Play Again? (Y/n)");
-    mvaddstr(20,40,"Play Again and change difficulty? (d)");
-    move(LINES-1,COLS-1);
-    refresh();
-}
-
+// *********************************************************************************
+// Game functions
+//     Used for various functions in the game loop including 
+//     but not limited to; ball trajectory, initializing
+//     the ball and paddle, moving the ball, etc...
+// *********************************************************
 void startGame(struct ppball *bp, struct pppaddle *pp) {
     clear();
     resetBall(bp);
@@ -330,7 +365,6 @@ void startGame(struct ppball *bp, struct pppaddle *pp) {
     drawCourt();
 
 
-    // signal(SIGINT, SIG_IGN);
     for (int ii = 0; ii < pp->height; ii++) {
         mvaddch(pp->y_pos+ii, pp->x_pos, pp->symbol);
     }
@@ -341,26 +375,6 @@ void startGame(struct ppball *bp, struct pppaddle *pp) {
     setDifficulty(selectedDif);
 }
 
-void setDifficulty(int dif) {
-    switch (dif)
-    {
-        case 0:
-            setTicker(1000/10);
-            break;
-        case 1:
-            setTicker(1000/50);
-            break;
-        case 2:
-            setTicker(1000/100);
-            break;
-        case 3:
-            setTicker(1000/150);
-            break;
-        case 4:
-            setTicker(1000/250);
-            break;
-    }
-}
 
 void resetPaddle(struct pppaddle *pp) {
     for (int ii = 0; ii < pp->height; ii++) {
@@ -449,93 +463,48 @@ int bounceOrLose(struct ppball *bp, struct pppaddle *pp) {
     return returnVal;
 }
 
-int updateScore(int count, char *str) {
-    snprintf(str, 20, "%d", count);
-    mvaddstr(0, 55, "Score: ");
-    mvaddstr(0, 62, str);
-
-    return count+=1;
-}
-
-void paddleInput(int signum) {
-    int	c = getch();		  /* grab the char */
-
-    switch (c) 
-    {
-        case 'Q':
-            done = 1;
-            break;
-        case 'r':
-            startGame(&the_Ball, &the_Paddle);
-            break;
-        case 27:
-            setTicker(0);
-            signal(SIGIO, pauseInput);
-            mvaddstr(15,55,"Paused");
-            showControls(1);
-            refresh();
-            break;
-
-        case 'j':
-            if (the_Paddle.y_pos > 1)
-            {
-                mvaddch(the_Paddle.y_pos+4, the_Paddle.x_pos, ' ');
-                the_Paddle.y_pos--;
-                for (int ii = 0; ii < 5; ii++) {
-                    mvaddch(the_Paddle.y_pos+ii, the_Paddle.x_pos, '#');
-                }
-                move(LINES-1,COLS-1);
-                refresh();
-                break;
-            }
-
-        case 'k':
-            if (the_Paddle.y_pos < 25)
-            {
-                mvaddch(the_Paddle.y_pos, the_Paddle.x_pos, ' ');
-                the_Paddle.y_pos++;
-                for (int ii = 0; ii < 5; ii++) {
-                    mvaddch(the_Paddle.y_pos+ii, the_Paddle.x_pos, '#');
-                }
-                move(LINES-1,COLS-1);
-                refresh();
-                break;
-            }
+// *********************************************************************************
+// Drawing functions
+//    Makes the game nice to look at!
+// **********************************
+// display controls for the game
+void showControls(int visible) {
+    if (!visible) {
+        move(23,55);
+        addstr("         ");
+        move(25,45);
+        addstr("     ");
+        move(27,45);
+        addstr("       ");
+        move(25,55);
+        addstr("          ");
+        move(27,55);
+        addstr("          ");
+        move(25,69);
+        addstr("             ");
+        move(27,69);
+        addstr("       ");
+        move(LINES-1,COLS-1);
+        refresh();
+    } else {    
+        move(23,55);
+        addstr("Controls:");
+        move(25,45);
+        addstr("Up: j");
+        move(27,45);
+        addstr("Down: k");
+        move(25,55);
+        addstr("Restart: r");
+        move(27,55);
+        addstr("Pause: Esc");
+        move(25,69);
+        addstr("Difficulty: d");
+        move(27,69);
+        addstr("Quit: Q");
+        move(LINES-1,COLS-1);
+        refresh();
     }
 }
-
-int setTicker( int nMsecs )
-{
-    struct itimerval newTimeset;
-    long    nSec, nUsecs;
-
-    nSec = nMsecs / 1000 ;
-    nUsecs = ( nMsecs % 1000 ) * 1000L;
-
-    newTimeset.it_interval.tv_sec = nSec;
-    newTimeset.it_interval.tv_usec = nUsecs;
-    newTimeset.it_value.tv_sec = nSec;
-    newTimeset.it_value.tv_usec = nUsecs;
-
-	return setitimer(ITIMER_REAL, &newTimeset, NULL);
-}
-
-// ============================================
-// Signal handling
-// ============================================
-void enable_kbd_signals()
-{
-	int  fd_flags;
-
-	fcntl(0, F_SETOWN, getpid());
-	fd_flags = fcntl(0, F_GETFL);
-	fcntl(0, F_SETFL, (fd_flags|O_ASYNC));
-}
-
-
-// ============================================
-// Drawing functions
-// ============================================
 
 // draws the borders for the court
 void drawCourt() {
@@ -554,7 +523,7 @@ void drawCourt() {
 
 void difficultyMenu() {
     move(8,52);
-	addstr("Choose a Difficulty!");
+	addstr("Choose Skill Level:");
     int yVal = 12;
     
     move(yVal,52);
@@ -629,4 +598,64 @@ void drawLine(int start, int len, int constCord, char *str, int dir) {
             addstr(str);
         }
     }
+}
+
+// *********************************************************************************
+// Helpers/Misc. functions
+//     various functions that have functionality 
+//     unique to themselves. Still crucial for 
+//     the game to run.
+// *********************************************
+int updateScore(int count, char *str) {
+    snprintf(str, 20, "%d", count);
+    mvaddstr(0, 55, "Score: ");
+    mvaddstr(0, 62, str);
+
+    return count+=1;
+}
+
+void setDifficulty(int dif) {
+    switch (dif)
+    {
+        case 0:
+            setTicker(1000/difficulties[0].value);
+            break;
+        case 1:
+            setTicker(1000/difficulties[1].value);
+            break;
+        case 2:
+            setTicker(1000/difficulties[2].value);
+            break;
+        case 3:
+            setTicker(1000/difficulties[3].value);
+            break;
+        case 4:
+            setTicker(1000/difficulties[4].value);
+            break;
+    }
+}
+
+int setTicker( int nMsecs )
+{
+    struct itimerval newTimeset;
+    long    nSec, nUsecs;
+
+    nSec = nMsecs / 1000 ;
+    nUsecs = ( nMsecs % 1000 ) * 1000L;
+
+    newTimeset.it_interval.tv_sec = nSec;
+    newTimeset.it_interval.tv_usec = nUsecs;
+    newTimeset.it_value.tv_sec = nSec;
+    newTimeset.it_value.tv_usec = nUsecs;
+
+	return setitimer(ITIMER_REAL, &newTimeset, NULL);
+}
+
+void enable_kbd_signals()
+{
+	int  fd_flags;
+
+	fcntl(0, F_SETOWN, getpid());
+	fd_flags = fcntl(0, F_GETFL);
+	fcntl(0, F_SETFL, (fd_flags|O_ASYNC));
 }
