@@ -124,7 +124,13 @@ void wrapUp() {
 //     user will see
 // ********************************
 void menuScreen() {
-    signal(SIGIO, mmInput);
+    if (signal(SIGIO, mmInput) == SIG_ERR) {
+        clear();
+        mvaddstr(0,0,"There was an error with the menu signals. Quitting game...");
+        sleep(2);
+        clear();
+        done = 1;
+    }
     drawCourt();
     drawPong();
     move(21,52);
@@ -135,6 +141,10 @@ void menuScreen() {
 void difficultyScreen() {
 
     if (signal(SIGIO, difficultyInput) == SIG_ERR) {
+        clear();
+        mvaddstr(0,0,"There was an error with the difficulty signals. Returning to menu");
+        sleep(2);
+        clear();
         gameState = 0;
     }
     drawCourt();
@@ -147,7 +157,13 @@ void difficultyScreen() {
 void lossScreen() {
     setTicker(0);
     clear();
-    signal(SIGIO, lossInput);
+    if (signal(SIGIO, lossInput) == SIG_ERR) {
+        clear();
+        mvaddstr(0,0,"There was an error with the loss screen signals. Returning to menu");
+        sleep(2);
+        clear();
+        gameState = 0;
+    }
     drawCourt();
     mvaddstr(15,52,"GAME OVER");
     mvaddstr(18,48,"Play Again? (Y/n)");
@@ -338,7 +354,9 @@ void startGame(struct ppball *bp, struct pppaddle *pp) {
     mvaddch(bp->y_pos, bp->x_pos, bp->symbol);
     refresh();
 
-    signal(SIGALRM, ballMove);
+    if (signal(SIGALRM, ballMove) == SIG_ERR) {
+        gameState = 1;
+    }
     setDifficulty(selectedDif);
 }
 
@@ -368,12 +386,17 @@ void resetBall(struct ppball *bp) {
 void ballMove(int signum) {
     int y_cur, x_cur, moved;
 
-    // signal(SIGALRM, SIG_IGN);
     y_cur = the_Ball.y_pos;
     x_cur = the_Ball.x_pos;
     moved = 0;
 
-    signal(SIGIO, paddleInput);
+    if (signal(SIGIO, paddleInput) == SIG_ERR) {
+        clear();
+        mvaddstr(0,0,"There was an error with the paddle signals. Returning to menu");
+        sleep(2);
+        clear();
+        gameState = 0;
+    }
 
     if (the_Ball.y_ttm > 0 && the_Ball.y_ttg-- == 1) {
         the_Ball.y_pos += the_Ball.y_dir;
