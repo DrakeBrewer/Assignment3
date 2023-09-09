@@ -73,8 +73,6 @@ int main() {
         // Difficulty screen
         else if (gameState == 1) {
             difficultyScreen();
-
-            // while (gameState == 1)
             pause();
         }
 
@@ -172,6 +170,12 @@ void lossScreen() {
     refresh();
 }
 
+// *********************************************************************************
+// Input handlers for signals
+//     Functions that when combined with signals, 
+//     handle the input at various states in the game.
+// ***************************************************
+
 void mmInput(int signum) {
     int	c = getch();
 	switch (c)
@@ -180,18 +184,12 @@ void mmInput(int signum) {
 			done = 1;
 			break;
 		case 10:
-            signal(SIGINT, SIG_DFL);
             clear();
 			gameState = 1;
 			break;
 	}
 }
 
-// *********************************************************************************
-// Input handlers for signals
-//     Functions that when combined with signals, 
-//     handle the input at various states in the game.
-// ***************************************************
 void difficultyInput(int signum) {
     int c = getch();
 
@@ -201,7 +199,6 @@ void difficultyInput(int signum) {
 			done = 1;
 			break;
         case 10:
-            signal(SIGINT, SIG_DFL);
             clear();
             gameState = 2;
             break;
@@ -244,7 +241,14 @@ void paddleInput(int signum) {
             break;
         case 27:
             setTicker(0);
-            signal(SIGIO, pauseInput);
+            if (signal(SIGIO, pauseInput) == SIG_ERR) {
+                clear();
+                mvaddstr(0,0,"There was an error with the pause screen signals. Returning to menu");
+                sleep(2);
+                clear();
+                gameState = 0;
+                break;
+            }
             mvaddstr(15,55,"Paused");
             showControls(1);
             refresh();
@@ -295,7 +299,6 @@ void pauseInput(int signum) {
     }
     else if (c == 'd') {
         clear();
-        setTicker(0);
         gameState = 1;
     }
 }
