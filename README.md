@@ -7,6 +7,7 @@
   - `$ sudo apt-get install libncurses5-dev libncursesw5-dev`
 - Navigate to stored directory
 - Run `make`
+- Run `./pong`
 - Have fun!
 
 ### Controls
